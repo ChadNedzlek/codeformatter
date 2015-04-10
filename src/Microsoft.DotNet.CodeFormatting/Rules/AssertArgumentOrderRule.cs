@@ -1,15 +1,19 @@
-﻿using System;
+﻿// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.DotNet.CodeFormatting.Rules
 {
+    [LocalSemanticRuleOrder(LocalSemanticRuleOrder.AssertArgumentOrderRule)]
     internal class AssertArgumentOrderRule : ILocalSemanticFormattingRule
     {
         private class Rewriter : CSharpSyntaxRewriter
@@ -69,7 +73,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 ArgumentSyntax expectedArgument = arguments[expectedIndex];
                 arguments[actualIndex] = expectedArgument;
                 arguments[expectedIndex] = actualArgument;
-                
+
                 return node.Update(
                     (ExpressionSyntax) Visit(node.Expression),
                     argumentList.WithArguments(SyntaxFactory.SeparatedList(arguments)));
@@ -91,8 +95,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
                     case SyntaxKind.SimpleMemberAccessExpression:
                     case SyntaxKind.IdentifierName:
-                        {
-                        var symbol = _model.GetSymbolInfo(expression).Symbol;
+                    {
+                        ISymbol symbol = _model.GetSymbolInfo(expression).Symbol;
 
                         if (symbol?.Kind == SymbolKind.Field)
                         {
@@ -151,9 +155,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             return languageName == LanguageNames.CSharp;
         }
 
-        public async Task<SyntaxNode> ProcessAsync(Document document, SyntaxNode syntaxRoot, CancellationToken cancellationToken)
+        public async Task<SyntaxNode> ProcessAsync(Document document, SyntaxNode syntaxRoot,
+            CancellationToken cancellationToken)
         {
-            Rewriter rewriter = new Rewriter(await document.GetSemanticModelAsync(cancellationToken));
+            var rewriter = new Rewriter(await document.GetSemanticModelAsync(cancellationToken));
             return rewriter.Visit(await document.GetSyntaxRootAsync(cancellationToken));
         }
     }

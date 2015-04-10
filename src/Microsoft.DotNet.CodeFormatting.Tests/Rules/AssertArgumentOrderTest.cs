@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Runtime.Remoting;
+﻿// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Collections.Generic;
+
 using Microsoft.CodeAnalysis;
+
 using Xunit;
 
 namespace Microsoft.DotNet.CodeFormatting.Tests
@@ -14,7 +18,7 @@ namespace Microsoft.DotNet.CodeFormatting.Tests
 
         protected override IEnumerable<MetadataReference> GetSolutionMetadataReferences()
         {
-            foreach (var reference in base.GetSolutionMetadataReferences())
+            foreach (MetadataReference reference in base.GetSolutionMetadataReferences())
             {
                 yield return reference;
             }
@@ -25,7 +29,7 @@ namespace Microsoft.DotNet.CodeFormatting.Tests
         [Fact]
         public void TestSwapInvertedEqual()
         {
-            string source = @"
+            var source = @"
 public class Tests
 {
     public void TestA()
@@ -35,7 +39,7 @@ public class Tests
     }
 }
 ";
-            string expected = @"
+            var expected = @"
 public class Tests
 {
     public void TestA()
@@ -52,7 +56,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedEqualEnum()
         {
-            string source = @"
+            var source = @"
 public class Tests
 {
     private enum E
@@ -68,7 +72,7 @@ public class Tests
     }
 }
 ";
-            string expected = @"
+            var expected = @"
 public class Tests
 {
     private enum E
@@ -90,7 +94,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedEqualConstField()
         {
-            string source = @"
+            var source = @"
 public class Tests
 {
     private const int A;
@@ -102,7 +106,7 @@ public class Tests
     }
 }
 ";
-            string expected = @"
+            var expected = @"
 public class Tests
 {
     private const int A;
@@ -120,7 +124,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedNotEqual()
         {
-            string source = @"
+            var source = @"
 public class Tests
 {
     public void TestA()
@@ -130,7 +134,7 @@ public class Tests
     }
 }
 ";
-            string expected = @"
+            var expected = @"
 public class Tests
 {
     public void TestA()
@@ -146,7 +150,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedEqualFromUsing()
         {
-            string source = @"
+            var source = @"
 using Xunit;
 
 public class Tests
@@ -158,7 +162,7 @@ public class Tests
     }
 }
 ";
-            string expected = @"
+            var expected = @"
 using Xunit;
 
 public class Tests
@@ -176,7 +180,7 @@ public class Tests
         [Fact]
         public void TestIgnoredCorrectEqual()
         {
-            string text = @"
+            var text = @"
 public class Tests
 {
     public void TestA()
@@ -192,7 +196,7 @@ public class Tests
         [Fact]
         public void TestIgnoredDoubleConstEqual()
         {
-            string text = @"
+            var text = @"
 public class Tests
 {
     public void TestA()
@@ -207,7 +211,7 @@ public class Tests
         [Fact]
         public void TestIgnoredDoubleVariableEqual()
         {
-            string text = @"
+            var text = @"
 public class Tests
 {
     public void TestA()
@@ -224,7 +228,7 @@ public class Tests
         [Fact]
         public void TestIgnoredCorrectNotEqual()
         {
-            string text = @"
+            var text = @"
 public class Tests
 {
     public void TestA()
@@ -240,7 +244,7 @@ public class Tests
         [Fact]
         public void TestIgnoreOtherAssert()
         {
-            string text = @"
+            var text = @"
 public class Assert
 {
     public void Equal(int expected, int actual)
