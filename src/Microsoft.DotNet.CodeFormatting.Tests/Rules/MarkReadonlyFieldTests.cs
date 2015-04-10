@@ -59,10 +59,10 @@ class C
         public void TestIgnoredReadonlyInternalWithNoReferencesByInternalsVisibleTo()
         {
             var text = @"
-[assembly:System.Runtime.CompilerServices.InternalsVisibleToAttribute(""Some.Other.Assembly"")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute(""Some.Other.Assembly"")]
 class C
 {
-    internal int changed;
+    internal int ignored;
 }
 ";
             Verify(Original(text), Readonly(text));
@@ -86,6 +86,23 @@ class C
         }
 
         [Fact]
+        public void TestIgnoredReadonlyWithCompoundWriteReferences()
+        {
+            var text = @"
+class C
+{
+    private int ignored;
+
+    public void T()
+    {
+        ignored += 5;
+    }
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
         public void TestMarkReadonlyWithReadReferences()
         {
             var text = @"
@@ -99,6 +116,11 @@ class C
         int x = change;
         x = changed;
         writen = changed;
+        X(changed);
+    }
+
+    public void X(int a)
+    {
     }
 }
 ";
@@ -148,6 +170,20 @@ class C
         }
 
         [Fact]
+        public void TestIgnoredReadonlyWithExternRefArgument()
+        {
+            var text = @"
+class C
+{
+    private int changed;
+
+    private extern void M(ref C c);
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
         public void TestMarkReadonlyWithWriteReferencesInConstructor()
         {
             var text = @"
@@ -174,12 +210,12 @@ class C
             Verify(Original(text), Readonly(text));
         }
 
-        private string Original(string text)
+        private static string Original(string text)
         {
             return text.Replace("READONLY ", "");
         }
 
-        private string Readonly(string text)
+        private static string Readonly(string text)
         {
             return text.Replace("READONLY ", "readonly ");
         }
