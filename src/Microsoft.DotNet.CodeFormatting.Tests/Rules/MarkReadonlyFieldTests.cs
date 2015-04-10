@@ -1,6 +1,10 @@
-﻿using System;
+﻿// // Copyright (c) Microsoft. All rights reserved.
+// // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
 using System.Linq;
+
 using Microsoft.CodeAnalysis;
+
 using Xunit;
 
 namespace Microsoft.DotNet.CodeFormatting.Tests
@@ -238,7 +242,8 @@ class C
         [Fact]
         public void TestMultipleFiles()
         {
-            string[] text = {
+            string[] text =
+            {
                 @"
 class C1
 {
@@ -252,7 +257,7 @@ class C1
     }
 }
 ",
-            @"
+                @"
 class C2
 {
     internal READONLY int read;
@@ -264,7 +269,8 @@ class C2
         int x = c.read;
     }
 }
-", };
+"
+            };
             Verify(Original(text), Readonly(text), true, LanguageNames.CSharp);
         }
 

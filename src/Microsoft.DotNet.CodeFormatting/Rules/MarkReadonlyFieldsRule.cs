@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// // Copyright (c) Microsoft. All rights reserved.
+// // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.Collections.Concurrent;
@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -20,6 +21,56 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
     [GlobalSemanticRuleOrder(GlobalSemanticRuleOrder.MarkReadonlyFieldsRule)]
     internal sealed class MarkReadonlyFieldsRule : IGlobalSemanticFormattingRule
     {
+        private readonly SemaphoreSlim _processUsagesLock = new SemaphoreSlim(1, 1);
+        private ConcurrentDictionary<IFieldSymbol, bool> _unwrittenWritableFields;
+
+        public bool SupportsLanguage(string languageName)
+        {
+            return languageName == LanguageNames.CSharp;
+        }
+
+        public async Task<Solution> ProcessAsync(Document document, SyntaxNode syntaxRoot,
+            CancellationToken cancellationToken)
+        {
+            if (_unwrittenWritableFields == null)
+            {
+                using (await SemaphoreLock.GetAsync(_processUsagesLock))
+                {
+                    // A global analysis must be run before we can do any actual processing, because a field might be written
+                    // in a different file than it is declared (even private ones may be split between partial classes).
+
+                    // It's also quite expensive, which is why it's being done inside the lock, so
+                    // that the entire solution is not processed for each input file individually
+                    if (_unwrittenWritableFields == null)
+                    {
+                        var allDocuments = document.Project.Solution.Projects.SelectMany(p => p.Documents).ToList();
+                        var fields = await Task.WhenAll(
+                            allDocuments
+                                .AsParallel()
+                                .Select(
+                                    async doc => await WritableFieldScanner.Scan(doc, cancellationToken)));
+
+                        var writableFields = new ConcurrentDictionary<IFieldSymbol, bool>(
+                            fields.SelectMany(s => s).Select(f => new KeyValuePair<IFieldSymbol, bool>(f, true)));
+
+                        await Task.WhenAll(
+                            allDocuments.AsParallel()
+                                .Select(async doc => await WriteUsagesScanner.RemoveWrittenFields(
+                                    doc,
+                                    writableFields,
+                                    cancellationToken)));
+
+                        _unwrittenWritableFields = writableFields;
+                    }
+                }
+            }
+
+            var root = await document.GetSyntaxRootAsync(cancellationToken);
+            var application = new ReadonlyRewriter(_unwrittenWritableFields,
+                await document.GetSemanticModelAsync(cancellationToken));
+            return document.Project.Solution.WithDocumentSyntaxRoot(document.Id, application.Visit(root));
+        }
+
         /// <summary>
         /// This is the first walker, which looks for fields that are valid to transform to readonly.
         /// It returns any private or internal fields that are not already marked readonly, and returns a hash set of them.
@@ -29,29 +80,34 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         /// </summary>
         private sealed class WritableFieldScanner : CSharpSyntaxWalker
         {
-            private readonly SemanticModel _model;
             private readonly HashSet<IFieldSymbol> _fields = new HashSet<IFieldSymbol>();
-            private readonly Dictionary<IAssemblySymbol, bool> _visibleOutsideAsembly = new Dictionary<IAssemblySymbol, bool>();
+            private readonly ISymbol _internalsVisibleToAttribute;
+            private readonly SemanticModel _model;
             private readonly Solution _solution;
-            private ISymbol _internalsVisibleToAttribute;
+
+            private readonly Dictionary<IAssemblySymbol, bool> _visibleOutsideAsembly =
+                new Dictionary<IAssemblySymbol, bool>();
 
             private WritableFieldScanner(SemanticModel model, Solution solution)
             {
                 _model = model;
                 _solution = solution;
-                _internalsVisibleToAttribute = model.Compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.InternalsVisibleToAttribute");
+                _internalsVisibleToAttribute =
+                    model.Compilation.GetTypeByMetadataName(
+                        "System.Runtime.CompilerServices.InternalsVisibleToAttribute");
             }
 
             public static async Task<HashSet<IFieldSymbol>> Scan(Document document, CancellationToken cancellationToken)
             {
-                WritableFieldScanner scanner = new WritableFieldScanner(await document.GetSemanticModelAsync(cancellationToken), document.Project.Solution);
+                var scanner = new WritableFieldScanner(await document.GetSemanticModelAsync(cancellationToken),
+                    document.Project.Solution);
                 scanner.Visit(await document.GetSyntaxRootAsync(cancellationToken));
                 return scanner._fields;
             }
 
             public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
             {
-                IFieldSymbol fieldSymbol = (IFieldSymbol) _model.GetDeclaredSymbol(node.Declaration.Variables[0]);
+                var fieldSymbol = (IFieldSymbol) _model.GetDeclaredSymbol(node.Declaration.Variables[0]);
 
                 if (fieldSymbol.IsReadOnly || fieldSymbol.IsConst || fieldSymbol.IsExtern)
                 {
@@ -66,9 +122,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 _fields.Add(fieldSymbol);
             }
 
-            private bool IsSymbolVisibleOutsideSolution(ISymbol symbol, ISymbol internalsVisibleToAttribute, Solution solution)
+            private bool IsSymbolVisibleOutsideSolution(ISymbol symbol, ISymbol internalsVisibleToAttribute,
+                Solution solution)
             {
-                Accessibility accessibility = symbol.DeclaredAccessibility;
+                var accessibility = symbol.DeclaredAccessibility;
 
                 if (accessibility == Accessibility.NotApplicable)
                 {
@@ -87,7 +144,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     if (symbol.ContainingType != null)
                     {
                         // a public symbol in a non-visible class isn't visible
-                        return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute, solution);
+                        return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute,
+                            solution);
                     }
 
                     // They are public, we are going to skip them.
@@ -103,7 +161,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                         if (symbol.ContainingType != null)
                         {
                             // a visible symbol in a non-visible class isn't visible
-                            return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute, solution);
+                            return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute,
+                                solution);
                         }
 
                         return true;
@@ -138,7 +197,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                         continue;
                     }
 
-                    string assemblyName = assemblyNameArgument.Value as string;
+                    var assemblyName = assemblyNameArgument.Value as string;
                     if (String.IsNullOrEmpty(assemblyName))
                     {
                         // The first argument wasn't a string, isn't really the correct type
@@ -176,7 +235,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
         /// <summary>
         /// This is the second walker. It checks all code for instances where one of the writable fields (as
-        /// calculated by <see cref="WritableFieldScanner"/>) is written to, and removes it from the set.
+        /// calculated by <see cref="WritableFieldScanner" />) is written to, and removes it from the set.
         /// Once the scan is complete, the set will not contain any fields written in the specified document.
         /// </summary>
         private sealed class WriteUsagesScanner : CSharpSyntaxWalker
@@ -184,7 +243,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private readonly SemanticModel _semanticModel;
             private readonly ConcurrentDictionary<IFieldSymbol, bool> _writableFields;
 
-            private WriteUsagesScanner(SemanticModel semanticModel, ConcurrentDictionary<IFieldSymbol, bool> writableFields)
+            private WriteUsagesScanner(SemanticModel semanticModel,
+                ConcurrentDictionary<IFieldSymbol, bool> writableFields)
             {
                 _semanticModel = semanticModel;
                 _writableFields = writableFields;
@@ -233,13 +293,13 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             {
                 foreach (var parameter in parameters)
                 {
-                    ITypeSymbol parameterType = _semanticModel.GetTypeInfo(parameter.Type).Type;
+                    var parameterType = _semanticModel.GetTypeInfo(parameter.Type).Type;
                     if (parameterType == null)
                     {
                         continue;
                     }
 
-                    bool canModify = true;
+                    var canModify = true;
                     if (parameterType.TypeKind == TypeKind.Struct)
                     {
                         canModify = parameter.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword));
@@ -330,26 +390,27 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 return false;
             }
 
-            public static async Task RemoveWrittenFields(Document document, ConcurrentDictionary<IFieldSymbol, bool> writableFields, CancellationToken cancellationToken)
+            public static async Task RemoveWrittenFields(Document document,
+                ConcurrentDictionary<IFieldSymbol, bool> writableFields, CancellationToken cancellationToken)
             {
-                WriteUsagesScanner scanner = new WriteUsagesScanner(await document.GetSemanticModelAsync(cancellationToken), writableFields);
+                var scanner = new WriteUsagesScanner(await document.GetSemanticModelAsync(cancellationToken),
+                    writableFields);
                 scanner.Visit(await document.GetSyntaxRootAsync(cancellationToken));
             }
         }
 
         /// <summary>
         /// This is the actually rewriter, and should be run third, using the data gathered from the other two
-        /// (<see cref="WritableFieldScanner"/> and <see cref="WriteUsagesScanner"/>).
-        ///
+        /// (<see cref="WritableFieldScanner" /> and <see cref="WriteUsagesScanner" />).
         /// Any field in the set is both writeable, but not actually written to, which means the "readonly"
         /// modifier should be applied to it.
         /// </summary>
-        private sealed class ReadonlyApplication : CSharpSyntaxRewriter
+        private sealed class ReadonlyRewriter : CSharpSyntaxRewriter
         {
             private readonly SemanticModel _model;
             private readonly ConcurrentDictionary<IFieldSymbol, bool> _unwrittenFields;
 
-            public ReadonlyApplication(ConcurrentDictionary<IFieldSymbol, bool> unwrittenFields, SemanticModel model)
+            public ReadonlyRewriter(ConcurrentDictionary<IFieldSymbol, bool> unwrittenFields, SemanticModel model)
             {
                 _model = model;
                 _unwrittenFields = unwrittenFields;
@@ -357,7 +418,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
             public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
             {
-                IFieldSymbol fieldSymbol = (IFieldSymbol)_model.GetDeclaredSymbol(node.Declaration.Variables[0]);
+                var fieldSymbol = (IFieldSymbol) _model.GetDeclaredSymbol(node.Declaration.Variables[0]);
                 bool ignored;
                 if (_unwrittenFields.TryRemove(fieldSymbol, out ignored))
                 {
@@ -366,54 +427,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
                 return node;
             }
-        }
-
-        public bool SupportsLanguage(string languageName)
-        {
-            return languageName == LanguageNames.CSharp;
-        }
-        
-        private ConcurrentDictionary<IFieldSymbol, bool> _unwrittenWritableFields;
-        private readonly SemaphoreSlim _processUsagesLock = new SemaphoreSlim(1, 1);
-
-        public async Task<Solution> ProcessAsync(Document document, SyntaxNode syntaxRoot, CancellationToken cancellationToken)
-        {
-            if (_unwrittenWritableFields == null)
-            {
-                using (await SemaphoreLock.GetAsync(_processUsagesLock))
-                {
-                    // A global analysis must be run before we can do any actual processing, because a field might be written
-                    // in a different file than it is declared (even private ones may be split between partial classes).
-
-                    // It's also quite expensive, which is why it's being done inside the lock, so
-                    // that the entire solution is not processed for each input file individually
-                    if (_unwrittenWritableFields == null)
-                    {
-                        var allDocuments = document.Project.Solution.Projects.SelectMany(p => p.Documents).ToList();
-                        var fields = await Task.WhenAll(
-                            allDocuments
-                                .AsParallel()
-                                .Select(
-                                    async doc => await WritableFieldScanner.Scan(doc, cancellationToken)));
-
-                        var writableFields = new ConcurrentDictionary<IFieldSymbol, bool>(
-                            fields.SelectMany(s => s).Select(f => new KeyValuePair<IFieldSymbol, bool>(f, true)));
-
-                        await Task.WhenAll(
-                            allDocuments.AsParallel()
-                                .Select(async doc => await WriteUsagesScanner.RemoveWrittenFields(
-                                    doc,
-                                    writableFields,
-                                    cancellationToken)));
-
-                        _unwrittenWritableFields = writableFields;
-                    }
-                }
-            }
-
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
-            var application = new ReadonlyApplication(_unwrittenWritableFields, await document.GetSemanticModelAsync(cancellationToken));
-            return document.Project.Solution.WithDocumentSyntaxRoot(document.Id, application.Visit(root));
         }
     }
 }
