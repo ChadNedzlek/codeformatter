@@ -374,19 +374,41 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         }
         
         private ConcurrentDictionary<IFieldSymbol, bool> _unwrittenWritableFields;
+        private readonly SemaphoreSlim _processUsagesLock = new SemaphoreSlim(1, 1);
 
         public async Task<Solution> ProcessAsync(Document document, SyntaxNode syntaxRoot, CancellationToken cancellationToken)
         {
             if (_unwrittenWritableFields == null)
             {
-                // A global analysis must be run before we can do any actual processing, because a field might be written
-                // in a different file than it is declared (even private ones may be split between partial classes)
-                var allDocuments = document.Project.Solution.Projects.SelectMany(p => p.Documents).ToList();
-                var fields = await Task.WhenAll(allDocuments.AsParallel().Select(async doc => await WritableFieldScanner.Scan(doc, cancellationToken)));
-                ConcurrentDictionary<IFieldSymbol, bool> writableFields = new ConcurrentDictionary<IFieldSymbol, bool>(
-                    fields.SelectMany(s => s).Select(f => new KeyValuePair<IFieldSymbol, bool>(f, true)));
-                await Task.WhenAll(allDocuments.AsParallel().Select(async doc => await WriteUsagesScanner.RemoveWrittenFields(doc, writableFields, cancellationToken)));
-                _unwrittenWritableFields = writableFields;
+                using (await SemaphoreLock.GetAsync(_processUsagesLock))
+                {
+                    // A global analysis must be run before we can do any actual processing, because a field might be written
+                    // in a different file than it is declared (even private ones may be split between partial classes).
+
+                    // It's also quite expensive, which is why it's being done inside the lock, so
+                    // that the entire solution is not processed for each input file individually
+                    if (_unwrittenWritableFields == null)
+                    {
+                        var allDocuments = document.Project.Solution.Projects.SelectMany(p => p.Documents).ToList();
+                        var fields = await Task.WhenAll(
+                            allDocuments
+                                .AsParallel()
+                                .Select(
+                                    async doc => await WritableFieldScanner.Scan(doc, cancellationToken)));
+
+                        var writableFields = new ConcurrentDictionary<IFieldSymbol, bool>(
+                            fields.SelectMany(s => s).Select(f => new KeyValuePair<IFieldSymbol, bool>(f, true)));
+
+                        await Task.WhenAll(
+                            allDocuments.AsParallel()
+                                .Select(async doc => await WriteUsagesScanner.RemoveWrittenFields(
+                                    doc,
+                                    writableFields,
+                                    cancellationToken)));
+
+                        _unwrittenWritableFields = writableFields;
+                    }
+                }
             }
 
             var root = await document.GetSyntaxRootAsync(cancellationToken);
