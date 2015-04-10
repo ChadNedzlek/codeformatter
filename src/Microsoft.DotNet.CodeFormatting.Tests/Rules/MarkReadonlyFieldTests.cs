@@ -1,5 +1,5 @@
-﻿// // Copyright (c) Microsoft. All rights reserved.
-// // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+﻿// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Linq;
 
@@ -27,7 +27,7 @@ namespace Microsoft.DotNet.CodeFormatting.Tests
         [Fact]
         public void TestIgnoreExistingReadonlyField()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private readonly int alreadyFine;
@@ -39,7 +39,7 @@ class C
         [Fact]
         public void TestMarkReadonlyWithNoReferences()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private READONLY int read;
@@ -51,7 +51,7 @@ class C
         [Fact]
         public void TestMarkReadonlyInternalWithNoReferences()
         {
-            var text = @"
+            string text = @"
 class C
 {
     internal READONLY int read;
@@ -63,7 +63,7 @@ class C
         [Fact]
         public void TestIgnoredReadonlyInternalWithNoReferencesByInternalsVisibleTo()
         {
-            var text = @"
+            string text = @"
 [assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute(""Some.Other.Assembly"")]
 class C
 {
@@ -76,7 +76,7 @@ class C
         [Fact]
         public void TestIgnoredPublic()
         {
-            var text = @"
+            string text = @"
 public class C
 {
     public int exposed;
@@ -88,7 +88,7 @@ public class C
         [Fact]
         public void TestMarkedPublicInInternalClass()
         {
-            var text = @"
+            string text = @"
 internal class C
 {
     public READONLY int notExposed;
@@ -100,7 +100,7 @@ internal class C
         [Fact]
         public void TestIgnoredReadonlyWithWriteReferences()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private int wrote;
@@ -117,7 +117,7 @@ class C
         [Fact]
         public void TestIgnoredReadonlyWithCompoundWriteReferences()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private int wrote;
@@ -134,7 +134,7 @@ class C
         [Fact]
         public void TestMarkReadonlyWithReadReferences()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private READONLY int read;
@@ -159,7 +159,7 @@ class C
         [Fact]
         public void TestIgnoredReadonlyWithRefArgument()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private int read;
@@ -180,7 +180,7 @@ class C
         [Fact]
         public void TestIgnoredReadonlyWithOutArgument()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private int read;
@@ -201,7 +201,7 @@ class C
         [Fact]
         public void TestIgnoredReadonlyWithExternRefArgument()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private int read;
@@ -215,7 +215,7 @@ class C
         [Fact]
         public void TestMarkReadonlyWithWriteReferencesInConstructor()
         {
-            var text = @"
+            string text = @"
 class C
 {
     private READONLY int read;

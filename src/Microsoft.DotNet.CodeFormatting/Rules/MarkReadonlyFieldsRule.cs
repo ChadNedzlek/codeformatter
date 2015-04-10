@@ -1,5 +1,5 @@
-// // Copyright (c) Microsoft. All rights reserved.
-// // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
 using System.Collections.Concurrent;
@@ -43,8 +43,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     // that the entire solution is not processed for each input file individually
                     if (_unwrittenWritableFields == null)
                     {
-                        var allDocuments = document.Project.Solution.Projects.SelectMany(p => p.Documents).ToList();
-                        var fields = await Task.WhenAll(
+                        List<Document> allDocuments =
+                            document.Project.Solution.Projects.SelectMany(p => p.Documents).ToList();
+                        HashSet<IFieldSymbol>[] fields = await Task.WhenAll(
                             allDocuments
                                 .AsParallel()
                                 .Select(
@@ -65,7 +66,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
             }
 
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
+            SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken);
             var application = new ReadonlyRewriter(_unwrittenWritableFields,
                 await document.GetSemanticModelAsync(cancellationToken));
             return document.Project.Solution.WithDocumentSyntaxRoot(document.Id, application.Visit(root));
@@ -125,7 +126,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private bool IsSymbolVisibleOutsideSolution(ISymbol symbol, ISymbol internalsVisibleToAttribute,
                 Solution solution)
             {
-                var accessibility = symbol.DeclaredAccessibility;
+                Accessibility accessibility = symbol.DeclaredAccessibility;
 
                 if (accessibility == Accessibility.NotApplicable)
                 {
@@ -154,7 +155,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
                 if (accessibility > Accessibility.Private)
                 {
-                    var visibleOutsideSolution = IsVisibleOutsideSolution(symbol, internalsVisibleToAttribute, solution);
+                    bool visibleOutsideSolution = IsVisibleOutsideSolution(symbol, internalsVisibleToAttribute, solution);
 
                     if (visibleOutsideSolution)
                     {
@@ -175,13 +176,13 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private bool IsVisibleOutsideSolution(ISymbol field, ISymbol internalsVisibleToAttribute, Solution solution)
             {
                 bool isVisible;
-                var assembly = field.ContainingAssembly;
+                IAssemblySymbol assembly = field.ContainingAssembly;
                 if (_visibleOutsideAsembly.TryGetValue(assembly, out isVisible))
                 {
                     return isVisible;
                 }
 
-                foreach (var internalsVisibleInstance in assembly.GetAttributes()
+                foreach (AttributeData internalsVisibleInstance in assembly.GetAttributes()
                     .Where(a => Equals(a.AttributeClass, internalsVisibleToAttribute)))
                 {
                     if (internalsVisibleInstance.ConstructorArguments.Length != 1)
@@ -190,14 +191,14 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                         continue;
                     }
 
-                    var assemblyNameArgument = internalsVisibleInstance.ConstructorArguments[0];
+                    TypedConstant assemblyNameArgument = internalsVisibleInstance.ConstructorArguments[0];
                     if (assemblyNameArgument.Kind != TypedConstantKind.Primitive)
                     {
                         // The first argument wasn't a primitave value, isn't really the correct type
                         continue;
                     }
 
-                    var assemblyName = assemblyNameArgument.Value as string;
+                    string assemblyName = assemblyNameArgument.Value as string;
                     if (String.IsNullOrEmpty(assemblyName))
                     {
                         // The first argument wasn't a string, isn't really the correct type
@@ -291,15 +292,15 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
             private void CheckForRefParametersForExternMethod(IEnumerable<ParameterSyntax> parameters)
             {
-                foreach (var parameter in parameters)
+                foreach (ParameterSyntax parameter in parameters)
                 {
-                    var parameterType = _semanticModel.GetTypeInfo(parameter.Type).Type;
+                    ITypeSymbol parameterType = _semanticModel.GetTypeInfo(parameter.Type).Type;
                     if (parameterType == null)
                     {
                         continue;
                     }
 
-                    var canModify = true;
+                    bool canModify = true;
                     if (parameterType.TypeKind == TypeKind.Struct)
                     {
                         canModify = parameter.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword));
@@ -311,7 +312,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                         // implmentation is hidden from this analysys. Assume all fields
                         // of the type are written to
 
-                        foreach (var field in parameterType.GetMembers().OfType<IFieldSymbol>())
+                        foreach (IFieldSymbol field in parameterType.GetMembers().OfType<IFieldSymbol>())
                         {
                             MarkWriteInstance(field);
                         }
