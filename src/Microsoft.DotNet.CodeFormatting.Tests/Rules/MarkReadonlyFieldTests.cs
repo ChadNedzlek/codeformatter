@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Xunit;
 
@@ -25,7 +26,7 @@ namespace Microsoft.DotNet.CodeFormatting.Tests
             var text = @"
 class C
 {
-    private readonly int ignored;
+    private readonly int alreadyFine;
 }
 ";
             Verify(Original(text), Readonly(text));
@@ -37,7 +38,7 @@ class C
             var text = @"
 class C
 {
-    private READONLY int changed;
+    private READONLY int read;
 }
 ";
             Verify(Original(text), Readonly(text));
@@ -49,7 +50,7 @@ class C
             var text = @"
 class C
 {
-    internal READONLY int changed;
+    internal READONLY int read;
 }
 ";
             Verify(Original(text), Readonly(text));
@@ -62,7 +63,31 @@ class C
 [assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute(""Some.Other.Assembly"")]
 class C
 {
-    internal int ignored;
+    internal int exposed;
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
+        public void TestIgnoredPublic()
+        {
+            var text = @"
+public class C
+{
+    public int exposed;
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
+        public void TestMarkedPublicInInternalClass()
+        {
+            var text = @"
+internal class C
+{
+    public READONLY int notExposed;
 }
 ";
             Verify(Original(text), Readonly(text));
@@ -74,11 +99,11 @@ class C
             var text = @"
 class C
 {
-    private int ignored;
+    private int wrote;
 
     public void T()
     {
-        ignored = 5;
+        wrote = 5;
     }
 }
 ";
@@ -91,11 +116,11 @@ class C
             var text = @"
 class C
 {
-    private int ignored;
+    private int wrote;
 
     public void T()
     {
-        ignored += 5;
+        wrote += 5;
     }
 }
 ";
@@ -108,15 +133,15 @@ class C
             var text = @"
 class C
 {
-    private READONLY int changed;
+    private READONLY int read;
     private int writen;
 
     public void T()
     {
         int x = change;
-        x = changed;
-        writen = changed;
-        X(changed);
+        x = read;
+        writen = read;
+        X(read);
     }
 
     public void X(int a)
@@ -133,7 +158,7 @@ class C
             var text = @"
 class C
 {
-    private int changed;
+    private int read;
 
     public void M(ref int a)
     {
@@ -141,7 +166,7 @@ class C
 
     public void T()
     {
-        M(ref changed);
+        M(ref read);
     }
 }
 ";
@@ -154,7 +179,7 @@ class C
             var text = @"
 class C
 {
-    private int changed;
+    private int read;
 
     public void N(out int a)
     {
@@ -162,7 +187,7 @@ class C
 
     public void T()
     {
-        N(out changed);
+        N(out read);
     }
 }
 ";
@@ -175,7 +200,7 @@ class C
             var text = @"
 class C
 {
-    private int changed;
+    private int read;
 
     private extern void M(ref C c);
 }
@@ -189,13 +214,13 @@ class C
             var text = @"
 class C
 {
-    private READONLY int changed;
+    private READONLY int read;
 
     public C()
     {
-        changed = 5;
-        M(ref changed);
-        N(out changed);
+        read = 5;
+        M(ref read);
+        N(out read);
     }
 
     public void M(ref int a)
@@ -210,6 +235,39 @@ class C
             Verify(Original(text), Readonly(text));
         }
 
+        [Fact]
+        public void TestMultipleFiles()
+        {
+            string[] text = {
+                @"
+class C1
+{
+    internal READONLY int read;
+    internal int wrote;
+
+    public void M(C2 c)
+    {
+        c.wrote = 5;
+        int x = c.read;
+    }
+}
+",
+            @"
+class C2
+{
+    internal READONLY int read;
+    internal int wrote;
+
+    public void M(C1 c)
+    {
+        c.wrote = 5;
+        int x = c.read;
+    }
+}
+", };
+            Verify(Original(text), Readonly(text), true, LanguageNames.CSharp);
+        }
+
         private static string Original(string text)
         {
             return text.Replace("READONLY ", "");
@@ -218,6 +276,16 @@ class C
         private static string Readonly(string text)
         {
             return text.Replace("READONLY ", "readonly ");
+        }
+
+        private static string[] Original(string[] text)
+        {
+            return text.Select(Original).ToArray();
+        }
+
+        private static string[] Readonly(string[] text)
+        {
+            return text.Select(Readonly).ToArray();
         }
     }
 }
