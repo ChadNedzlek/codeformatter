@@ -29,7 +29,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             return languageName == LanguageNames.CSharp;
         }
 
-        public async Task<Solution> ProcessAsync(Document document, SyntaxNode syntaxRoot,
+        public async Task<Solution> ProcessAsync(
+            Document document,
+            SyntaxNode syntaxRoot,
             CancellationToken cancellationToken)
         {
             if (_unwrittenWritableFields == null)
@@ -56,10 +58,11 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
                         await Task.WhenAll(
                             allDocuments.AsParallel()
-                                .Select(doc => WriteUsagesScanner.RemoveWrittenFields(
-                                    doc,
-                                    writableFields,
-                                    cancellationToken)));
+                                .Select(
+                                    doc => WriteUsagesScanner.RemoveWrittenFields(
+                                        doc,
+                                        writableFields,
+                                        cancellationToken)));
 
                         _unwrittenWritableFields = writableFields;
                     }
@@ -67,7 +70,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             }
 
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken);
-            var application = new ReadonlyRewriter(_unwrittenWritableFields,
+            var application = new ReadonlyRewriter(
+                _unwrittenWritableFields,
                 await document.GetSemanticModelAsync(cancellationToken));
             return document.Project.Solution.WithDocumentSyntaxRoot(document.Id, application.Visit(root));
         }
@@ -100,7 +104,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
             public static async Task<HashSet<IFieldSymbol>> Scan(Document document, CancellationToken cancellationToken)
             {
-                var scanner = new WritableFieldScanner(await document.GetSemanticModelAsync(cancellationToken),
+                var scanner = new WritableFieldScanner(
+                    await document.GetSemanticModelAsync(cancellationToken),
                     document.Project.Solution);
                 scanner.Visit(await document.GetSyntaxRootAsync(cancellationToken));
                 return scanner._fields;
@@ -123,7 +128,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 _fields.Add(fieldSymbol);
             }
 
-            private bool IsSymbolVisibleOutsideSolution(ISymbol symbol, ISymbol internalsVisibleToAttribute,
+            private bool IsSymbolVisibleOutsideSolution(
+                ISymbol symbol,
+                ISymbol internalsVisibleToAttribute,
                 Solution solution)
             {
                 Accessibility accessibility = symbol.DeclaredAccessibility;
@@ -145,7 +152,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     if (symbol.ContainingType != null)
                     {
                         // a public symbol in a non-visible class isn't visible
-                        return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute,
+                        return IsSymbolVisibleOutsideSolution(
+                            symbol.ContainingType,
+                            internalsVisibleToAttribute,
                             solution);
                     }
 
@@ -155,14 +164,19 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
                 if (accessibility > Accessibility.Private)
                 {
-                    bool visibleOutsideSolution = IsVisibleOutsideSolution(symbol, internalsVisibleToAttribute, solution);
+                    bool visibleOutsideSolution = IsVisibleOutsideSolution(
+                        symbol,
+                        internalsVisibleToAttribute,
+                        solution);
 
                     if (visibleOutsideSolution)
                     {
                         if (symbol.ContainingType != null)
                         {
                             // a visible symbol in a non-visible class isn't visible
-                            return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute,
+                            return IsSymbolVisibleOutsideSolution(
+                                symbol.ContainingType,
+                                internalsVisibleToAttribute,
                                 solution);
                         }
 
@@ -244,7 +258,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private readonly SemanticModel _semanticModel;
             private readonly ConcurrentDictionary<IFieldSymbol, bool> _writableFields;
 
-            private WriteUsagesScanner(SemanticModel semanticModel,
+            private WriteUsagesScanner(
+                SemanticModel semanticModel,
                 ConcurrentDictionary<IFieldSymbol, bool> writableFields)
             {
                 _semanticModel = semanticModel;
@@ -391,10 +406,13 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 return false;
             }
 
-            public static async Task RemoveWrittenFields(Document document,
-                ConcurrentDictionary<IFieldSymbol, bool> writableFields, CancellationToken cancellationToken)
+            public static async Task RemoveWrittenFields(
+                Document document,
+                ConcurrentDictionary<IFieldSymbol, bool> writableFields,
+                CancellationToken cancellationToken)
             {
-                var scanner = new WriteUsagesScanner(await document.GetSemanticModelAsync(cancellationToken),
+                var scanner = new WriteUsagesScanner(
+                    await document.GetSemanticModelAsync(cancellationToken),
                     writableFields);
                 scanner.Visit(await document.GetSyntaxRootAsync(cancellationToken));
             }
@@ -425,10 +443,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 {
                     return
                         node.WithModifiers(
-                            node.Modifiers.Add(SyntaxFactory.Token(
-                                SyntaxFactory.TriviaList(),
-                                SyntaxKind.ReadOnlyKeyword,
-                                SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))));
+                            node.Modifiers.Add(
+                                SyntaxFactory.Token(
+                                    SyntaxFactory.TriviaList(),
+                                    SyntaxKind.ReadOnlyKeyword,
+                                    SyntaxFactory.TriviaList(
+                                        SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))));
                 }
 
                 return node;
