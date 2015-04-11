@@ -108,7 +108,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
             public override void VisitFieldDeclaration(FieldDeclarationSyntax node)
             {
-                var fieldSymbol = (IFieldSymbol) _model.GetDeclaredSymbol(node.Declaration.Variables[0]);
+                var fieldSymbol = (IFieldSymbol)_model.GetDeclaredSymbol(node.Declaration.Variables[0]);
 
                 if (fieldSymbol.IsReadOnly || fieldSymbol.IsConst || fieldSymbol.IsExtern)
                 {
@@ -335,10 +335,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     case SyntaxKind.OrAssignmentExpression:
                     case SyntaxKind.RightShiftAssignmentExpression:
                     case SyntaxKind.SubtractAssignmentExpression:
-                    {
-                        CheckForFieldWrite(node.Left);
-                        break;
-                    }
+                        {
+                            CheckForFieldWrite(node.Left);
+                            break;
+                        }
                 }
             }
 
@@ -419,7 +419,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
             public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
             {
-                var fieldSymbol = (IFieldSymbol) _model.GetDeclaredSymbol(node.Declaration.Variables[0]);
+                var fieldSymbol = (IFieldSymbol)_model.GetDeclaredSymbol(node.Declaration.Variables[0]);
                 bool ignored;
                 if (_unwrittenFields.TryRemove(fieldSymbol, out ignored))
                 {
