@@ -423,7 +423,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 bool ignored;
                 if (_unwrittenFields.TryRemove(fieldSymbol, out ignored))
                 {
-                    return node.WithModifiers(node.Modifiers.Add(SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)));
+                    return
+                        node.WithModifiers(
+                            node.Modifiers.Add(SyntaxFactory.Token(
+                                SyntaxFactory.TriviaList(),
+                                SyntaxKind.ReadOnlyKeyword,
+                                SyntaxFactory.TriviaList(SyntaxFactory.SyntaxTrivia(SyntaxKind.WhitespaceTrivia, " ")))));
                 }
 
                 return node;
