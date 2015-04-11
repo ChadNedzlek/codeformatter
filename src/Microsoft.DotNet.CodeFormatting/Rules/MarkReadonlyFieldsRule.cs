@@ -49,14 +49,14 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                             allDocuments
                                 .AsParallel()
                                 .Select(
-                                    async doc => await WritableFieldScanner.Scan(doc, cancellationToken)));
+                                    doc => WritableFieldScanner.Scan(doc, cancellationToken)));
 
                         var writableFields = new ConcurrentDictionary<IFieldSymbol, bool>(
                             fields.SelectMany(s => s).Select(f => new KeyValuePair<IFieldSymbol, bool>(f, true)));
 
                         await Task.WhenAll(
                             allDocuments.AsParallel()
-                                .Select(async doc => await WriteUsagesScanner.RemoveWrittenFields(
+                                .Select(doc => WriteUsagesScanner.RemoveWrittenFields(
                                     doc,
                                     writableFields,
                                     cancellationToken)));
