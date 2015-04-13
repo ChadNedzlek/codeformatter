@@ -262,6 +262,40 @@ class C
         }
 
         [Fact]
+        public void TestIgnoreReadonlyWithDelegateReferencesInConstructor()
+        {
+            string text = @"
+class C
+{
+    private int wrote;
+
+    public C()
+    {
+        Action a = delegate { wrote = 5 };
+    }
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
+        public void TestIgnoreStaticReadonlyWithWriteReferencesInInstanceConstructor()
+        {
+            string text = @"
+class C
+{
+    private static int wrote;
+
+    public C()
+    {
+        wrote = 5;
+    }
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
         public void TestMultipleFiles()
         {
             string[] text =

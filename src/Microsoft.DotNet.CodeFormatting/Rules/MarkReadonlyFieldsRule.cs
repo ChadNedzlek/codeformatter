@@ -385,7 +385,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
                 if (fieldSymbol != null)
                 {
-                    if (IsInsideOwnConstructor(node, fieldSymbol.ContainingType))
+                    if (IsInsideOwnConstructor(node, fieldSymbol.ContainingType, fieldSymbol.IsStatic))
                     {
                         return;
                     }
@@ -400,13 +400,21 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 _writableFields.TryRemove(fieldSymbol, out ignored);
             }
 
-            private bool IsInsideOwnConstructor(SyntaxNode node, ITypeSymbol type)
+            private bool IsInsideOwnConstructor(SyntaxNode node, ITypeSymbol type, bool isStatic)
             {
                 while (node != null)
                 {
-                    if (node.IsKind(SyntaxKind.ConstructorDeclaration))
+                    switch (node.Kind())
                     {
-                        return IsInType(node.Parent, type);
+                        case SyntaxKind.ConstructorDeclaration:
+                            {
+                                return _semanticModel.GetDeclaredSymbol(node).IsStatic == isStatic &&
+                                    IsInType(node.Parent, type);
+                            }
+                        case SyntaxKind.ParenthesizedLambdaExpression:
+                        case SyntaxKind.SimpleLambdaExpression:
+                        case SyntaxKind.AnonymousMethodExpression:
+                            return false;
                     }
 
                     node = node.Parent;
