@@ -68,6 +68,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
             }
 
+            if (_unwrittenWritableFields.Count == 0)
+            {
+                // If there are no unwritten writable fields, skip all the rewriting
+                return document.Project.Solution;
+            }
+
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken);
             var application = new ReadonlyRewriter(
                 _unwrittenWritableFields,
