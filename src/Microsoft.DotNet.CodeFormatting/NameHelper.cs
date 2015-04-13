@@ -30,7 +30,7 @@ namespace Microsoft.DotNet.CodeFormatting
         {
             if (type.ContainingType != null)
             {
-                return GetFullName(type.ContainingType) + "." + type.Name;
+                return GetFullName(type.ContainingType) + "+" + type.Name;
             }
 
             return GetFullName(type.ContainingNamespace) + "." + type.Name;
