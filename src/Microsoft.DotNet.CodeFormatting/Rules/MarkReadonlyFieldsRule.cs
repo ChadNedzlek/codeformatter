@@ -38,8 +38,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             {
                 using (await SemaphoreLock.GetAsync(_processUsagesLock))
                 {
-                    // A global analysis must be run before we can do any actual processing, because a field might be written
-                    // in a different file than it is declared (even private ones may be split between partial classes).
+                    // A global analysis must be run before we can do any actual processing, because a field might
+                    // be written in a different file than it is declared (even private ones may be split between
+                    // partial classes).
 
                     // It's also quite expensive, which is why it's being done inside the lock, so
                     // that the entire solution is not processed for each input file individually
@@ -78,10 +79,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
         /// <summary>
         /// This is the first walker, which looks for fields that are valid to transform to readonly.
-        /// It returns any private or internal fields that are not already marked readonly, and returns a hash set of them.
-        /// Internal fields are only considered if the "InternalsVisibleTo" is a reference to something in the same solution,
-        /// since it's possible to analyse the global usages of it. Otherwise there is an assembly we don't have access to
-        /// that can see that field, so we have to treat is as public
+        /// It returns any private or internal fields that are not already marked readonly, and returns a hash set
+        /// of them. Internal fields are only considered if the "InternalsVisibleTo" is a reference to something
+        /// in the same solution, since it's possible to analyse the global usages of it. Otherwise there is an
+        /// assembly we don't have access to that can see that field, so we have to treat is as public.
         /// </summary>
         private sealed class WritableFieldScanner : CSharpSyntaxWalker
         {
@@ -108,7 +109,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                         "System.Runtime.CompilerServices.InternalsVisibleToAttribute");
             }
 
-            public static async Task<HashSet<IFieldSymbol>> Scan(Document document, CancellationToken cancellationToken)
+            public static async Task<HashSet<IFieldSymbol>> Scan(
+                Document document,
+                CancellationToken cancellationToken)
             {
                 var scanner = new WritableFieldScanner(
                     await document.GetSemanticModelAsync(cancellationToken),
@@ -198,7 +201,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 return false;
             }
 
-            private bool IsVisibleOutsideSolution(ISymbol field, ISymbol internalsVisibleToAttribute, Solution solution)
+            private bool IsVisibleOutsideSolution(
+                ISymbol field,
+                ISymbol internalsVisibleToAttribute,
+                Solution solution)
             {
                 bool isVisible;
                 IAssemblySymbol assembly = field.ContainingAssembly;
@@ -261,7 +267,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private bool IsFieldSerializableByAttributes(IFieldSymbol field)
             {
                 if (field.GetAttributes()
-                        .Any(attr => SerializingFieldAttributes.Contains(NameHelper.GetFullName(attr.AttributeClass))))
+                    .Any(attr => SerializingFieldAttributes.Contains(NameHelper.GetFullName(attr.AttributeClass))))
                 {
                     return true;
                 }
@@ -288,13 +294,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 _writableFields = writableFields;
             }
 
-            public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
-            {
-                base.VisitAssignmentExpression(node);
-
-                CheckForFieldWrite(node.Left);
-            }
-
             public override void VisitArgument(ArgumentSyntax node)
             {
                 base.VisitArgument(node);
@@ -305,14 +304,32 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
             }
 
-            public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
+            public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
             {
-                base.VisitMethodDeclaration(node);
+                base.VisitAssignmentExpression(node);
 
-                if (node.Modifiers.Any(m => m.IsKind(SyntaxKind.ExternKeyword)))
+                CheckForFieldWrite(node.Left);
+            }
+
+            public override void VisitBinaryExpression(BinaryExpressionSyntax node)
+            {
+                base.VisitBinaryExpression(node);
+                switch (node.OperatorToken.Kind())
                 {
-                    // This method body is unable to be analysed, so may contain writer instances
-                    CheckForRefParametersForExternMethod(node.ParameterList.Parameters);
+                    case SyntaxKind.AddAssignmentExpression:
+                    case SyntaxKind.AndAssignmentExpression:
+                    case SyntaxKind.DivideAssignmentExpression:
+                    case SyntaxKind.ExclusiveOrAssignmentExpression:
+                    case SyntaxKind.LeftShiftAssignmentExpression:
+                    case SyntaxKind.ModuloAssignmentExpression:
+                    case SyntaxKind.MultiplyAssignmentExpression:
+                    case SyntaxKind.OrAssignmentExpression:
+                    case SyntaxKind.RightShiftAssignmentExpression:
+                    case SyntaxKind.SubtractAssignmentExpression:
+                        {
+                            CheckForFieldWrite(node.Left);
+                            break;
+                        }
                 }
             }
 
@@ -337,15 +354,29 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 if (node.Expression.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                 {
                     var memberAccess = (MemberAccessExpressionSyntax)node.Expression;
-                    var symbol = _semanticModel.GetSymbolInfo(memberAccess.Expression).Symbol;
+                    ISymbol symbol = _semanticModel.GetSymbolInfo(memberAccess.Expression).Symbol;
                     if (symbol?.Kind == SymbolKind.Field)
                     {
-                        IFieldSymbol fieldSymbol = (IFieldSymbol)symbol;
+                        var fieldSymbol = (IFieldSymbol)symbol;
                         if (fieldSymbol.Type.TypeKind == TypeKind.Struct)
                         {
-                            MarkWriteInstance(fieldSymbol);
+                            if (!IsImmutablePrimitiveType(fieldSymbol.Type))
+                            {
+                                MarkWriteInstance(fieldSymbol);
+                            }
                         }
                     }
+                }
+            }
+
+            public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
+            {
+                base.VisitMethodDeclaration(node);
+
+                if (node.Modifiers.Any(m => m.IsKind(SyntaxKind.ExternKeyword)))
+                {
+                    // This method body is unable to be analysed, so may contain writer instances
+                    CheckForRefParametersForExternMethod(node.ParameterList.Parameters);
                 }
             }
 
@@ -379,28 +410,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
             }
 
-            public override void VisitBinaryExpression(BinaryExpressionSyntax node)
-            {
-                base.VisitBinaryExpression(node);
-                switch (node.OperatorToken.Kind())
-                {
-                    case SyntaxKind.AddAssignmentExpression:
-                    case SyntaxKind.AndAssignmentExpression:
-                    case SyntaxKind.DivideAssignmentExpression:
-                    case SyntaxKind.ExclusiveOrAssignmentExpression:
-                    case SyntaxKind.LeftShiftAssignmentExpression:
-                    case SyntaxKind.ModuloAssignmentExpression:
-                    case SyntaxKind.MultiplyAssignmentExpression:
-                    case SyntaxKind.OrAssignmentExpression:
-                    case SyntaxKind.RightShiftAssignmentExpression:
-                    case SyntaxKind.SubtractAssignmentExpression:
-                        {
-                            CheckForFieldWrite(node.Left);
-                            break;
-                        }
-                }
-            }
-
             private void CheckForFieldWrite(ExpressionSyntax node)
             {
                 var fieldSymbol = _semanticModel.GetSymbolInfo(node).Symbol as IFieldSymbol;
@@ -416,10 +425,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
             }
 
-            private void MarkWriteInstance(IFieldSymbol fieldSymbol)
+            private bool IsImmutablePrimitiveType(ITypeSymbol type)
             {
-                bool ignored;
-                _writableFields.TryRemove(fieldSymbol, out ignored);
+                // All of the "special type" structs exposed are all immutable,
+                // so it's safe to assume all methods on them are non-mutating, and
+                // therefore safe to call on a readonly field
+                return type.SpecialType != SpecialType.None && type.TypeKind == TypeKind.Struct;
             }
 
             private bool IsInsideOwnConstructor(SyntaxNode node, ITypeSymbol type, bool isStatic)
@@ -456,6 +467,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     node = node.Parent;
                 }
                 return false;
+            }
+
+            private void MarkWriteInstance(IFieldSymbol fieldSymbol)
+            {
+                bool ignored;
+                _writableFields.TryRemove(fieldSymbol, out ignored);
             }
 
             public static async Task RemoveWrittenFields(

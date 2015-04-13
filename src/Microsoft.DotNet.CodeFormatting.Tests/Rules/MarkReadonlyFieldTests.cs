@@ -247,6 +247,24 @@ class C
         }
 
         [Fact]
+        public void TestMarkReadonlyWithPrimitiveMethodCall()
+        {
+            string text = @"
+
+class C
+{
+    private READONLY int called;
+
+    public void T()
+    {
+        string s = called.ToString();
+    }
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
         public void TestIgnoredImportedField()
         {
             string text = @"
