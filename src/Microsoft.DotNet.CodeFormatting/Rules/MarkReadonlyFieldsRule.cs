@@ -305,6 +305,28 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
             }
 
+            public override void VisitInvocationExpression(InvocationExpressionSyntax node)
+            {
+                base.VisitInvocationExpression(node);
+
+                // A call to myStruct.myField.myMethod() will change if "myField" is marked
+                // readonly, since myMethod might modify it. So those need to be counted as writes
+
+                if (node.Expression.IsKind(SyntaxKind.SimpleMemberAccessExpression))
+                {
+                    var memberAccess = (MemberAccessExpressionSyntax)node.Expression;
+                    var symbol = _semanticModel.GetSymbolInfo(memberAccess.Expression).Symbol;
+                    if (symbol?.Kind == SymbolKind.Field)
+                    {
+                        IFieldSymbol fieldSymbol = (IFieldSymbol)symbol;
+                        if (fieldSymbol.Type.TypeKind == TypeKind.Struct)
+                        {
+                            MarkWriteInstance(fieldSymbol);
+                        }
+                    }
+                }
+            }
+
             private void CheckForRefParametersForExternMethod(IEnumerable<ParameterSyntax> parameters)
             {
                 foreach (ParameterSyntax parameter in parameters)
