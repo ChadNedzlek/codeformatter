@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -95,15 +93,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private readonly HashSet<IFieldSymbol> _fields = new HashSet<IFieldSymbol>();
             private readonly ISymbol _internalsVisibleToAttribute;
             private readonly SemanticModel _model;
-            private readonly Solution _solution;
 
-            private readonly Dictionary<IAssemblySymbol, bool> _visibleOutsideAsembly =
-                new Dictionary<IAssemblySymbol, bool>();
-
-            private WritableFieldScanner(SemanticModel model, Solution solution)
+            private WritableFieldScanner(SemanticModel model)
             {
                 _model = model;
-                _solution = solution;
                 _internalsVisibleToAttribute =
                     model.Compilation.GetTypeByMetadataName(
                         "System.Runtime.CompilerServices.InternalsVisibleToAttribute");
@@ -114,8 +107,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 CancellationToken cancellationToken)
             {
                 var scanner = new WritableFieldScanner(
-                    await document.GetSemanticModelAsync(cancellationToken),
-                    document.Project.Solution);
+                    await document.GetSemanticModelAsync(cancellationToken));
                 scanner.Visit(await document.GetSyntaxRootAsync(cancellationToken));
                 return scanner._fields;
             }
@@ -129,7 +121,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     return;
                 }
 
-                if (IsSymbolVisibleOutsideSolution(fieldSymbol, _internalsVisibleToAttribute, _solution))
+                if (IsSymbolVisibleOutsideSolution(fieldSymbol, _internalsVisibleToAttribute))
                 {
                     return;
                 }
@@ -142,10 +134,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 _fields.Add(fieldSymbol);
             }
 
-            private bool IsSymbolVisibleOutsideSolution(
-                ISymbol symbol,
-                ISymbol internalsVisibleToAttribute,
-                Solution solution)
+            private static bool IsSymbolVisibleOutsideSolution(ISymbol symbol, ISymbol internalsVisibleToAttribute)
             {
                 Accessibility accessibility = symbol.DeclaredAccessibility;
 
@@ -166,10 +155,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     if (symbol.ContainingType != null)
                     {
                         // a public symbol in a non-visible class isn't visible
-                        return IsSymbolVisibleOutsideSolution(
-                            symbol.ContainingType,
-                            internalsVisibleToAttribute,
-                            solution);
+                        return IsSymbolVisibleOutsideSolution(symbol.ContainingType, internalsVisibleToAttribute);
                     }
 
                     // They are public, we are going to skip them.
@@ -180,8 +166,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 {
                     bool visibleOutsideSolution = IsVisibleOutsideSolution(
                         symbol,
-                        internalsVisibleToAttribute,
-                        solution);
+                        internalsVisibleToAttribute);
 
                     if (visibleOutsideSolution)
                     {
@@ -190,8 +175,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                             // a visible symbol in a non-visible class isn't visible
                             return IsSymbolVisibleOutsideSolution(
                                 symbol.ContainingType,
-                                internalsVisibleToAttribute,
-                                solution);
+                                internalsVisibleToAttribute);
                         }
 
                         return true;
@@ -201,67 +185,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 return false;
             }
 
-            private bool IsVisibleOutsideSolution(
+            private static bool IsVisibleOutsideSolution(
                 ISymbol field,
-                ISymbol internalsVisibleToAttribute,
-                Solution solution)
+                ISymbol internalsVisibleToAttribute)
             {
-                bool isVisible;
                 IAssemblySymbol assembly = field.ContainingAssembly;
-                if (_visibleOutsideAsembly.TryGetValue(assembly, out isVisible))
-                {
-                    return isVisible;
-                }
-
-                foreach (AttributeData internalsVisibleInstance in assembly.GetAttributes()
-                    .Where(a => Equals(a.AttributeClass, internalsVisibleToAttribute)))
-                {
-                    if (internalsVisibleInstance.ConstructorArguments.Length != 1)
-                    {
-                        // Unexpected number of agruments, isn't really the correct type.
-                        continue;
-                    }
-
-                    TypedConstant assemblyNameArgument = internalsVisibleInstance.ConstructorArguments[0];
-                    if (assemblyNameArgument.Kind != TypedConstantKind.Primitive)
-                    {
-                        // The first argument wasn't a primitave value, isn't really the correct type
-                        continue;
-                    }
-
-                    string assemblyName = assemblyNameArgument.Value as string;
-                    if (String.IsNullOrEmpty(assemblyName))
-                    {
-                        // The first argument wasn't a string, isn't really the correct type
-                        continue;
-                    }
-
-                    if (!solution.Projects.Any(p => ProjectHasName(p, assemblyName)))
-                    {
-                        // None of the projects in this solution have the target name
-                        // Which means that this is intended to reference something outside of this
-                        // solution, in which the assignments cannot be found.
-                        isVisible = true;
-                        break;
-                    }
-                }
-
-                _visibleOutsideAsembly.Add(assembly, isVisible);
-                return isVisible;
-            }
-
-            private static bool ProjectHasName(Project project, string assemblyName)
-            {
-                var projectName = new AssemblyName(project.AssemblyName);
-                var target = new AssemblyName(assemblyName);
-                if (String.Equals(projectName.Name, target.Name, StringComparison.Ordinal))
-                {
-                    // Technically we should check version and public key token
-                    // But if signing happens out of band, or there is a version bump
-                    // That's almost certainly the same assembly anyway, so just go with true
-                    return true;
-                }
-                return false;
+                return assembly.GetAttributes().Any(a => Equals(a.AttributeClass, internalsVisibleToAttribute));
             }
 
             private bool IsFieldSerializableByAttributes(IFieldSymbol field)
