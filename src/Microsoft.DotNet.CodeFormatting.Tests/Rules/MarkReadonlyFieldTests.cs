@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.Linq;
 
 using Microsoft.CodeAnalysis;
@@ -17,6 +19,16 @@ namespace Microsoft.DotNet.CodeFormatting.Tests
         internal override IGlobalSemanticFormattingRule Rule
         {
             get { return new Rules.MarkReadonlyFieldsRule(); }
+        }
+
+        protected override IEnumerable<MetadataReference> GetSolutionMetadataReferences()
+        {
+            foreach (MetadataReference reference in base.GetSolutionMetadataReferences())
+            {
+                yield return reference;
+            }
+
+            yield return MetadataReference.CreateFromAssembly(typeof(ImportAttribute).Assembly);
         }
 
         // In general a single sting with "READONLY" in it is used
@@ -229,6 +241,30 @@ class C
     {
         called.T();
     }
+}
+";
+            Verify(Original(text), Readonly(text));
+        }
+
+        [Fact]
+        public void TestIgnoredImportedField()
+        {
+            string text = @"
+using System.ComponentModel.Composition;
+
+public interface ITest
+{
+}
+
+[Export(typeof(ITest))]
+public class Test : ITest
+{
+}
+
+class C
+{
+    [Import]
+    private ITest imported;
 }
 ";
             Verify(Original(text), Readonly(text));

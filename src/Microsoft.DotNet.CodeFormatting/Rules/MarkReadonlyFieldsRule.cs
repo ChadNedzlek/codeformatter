@@ -85,6 +85,12 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         /// </summary>
         private sealed class WritableFieldScanner : CSharpSyntaxWalker
         {
+            private static readonly HashSet<string> SerializingFieldAttributes = new HashSet<string>
+            {
+                "System.ComponentModel.Composition.ImportAttribute",
+                "System.ComponentModel.Composition.ImportManyAttribute",
+            };
+
             private readonly HashSet<IFieldSymbol> _fields = new HashSet<IFieldSymbol>();
             private readonly ISymbol _internalsVisibleToAttribute;
             private readonly SemanticModel _model;
@@ -121,6 +127,11 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
 
                 if (IsSymbolVisibleOutsideSolution(fieldSymbol, _internalsVisibleToAttribute, _solution))
+                {
+                    return;
+                }
+
+                if (IsFieldSerializableByAttributes(fieldSymbol))
                 {
                     return;
                 }
@@ -244,6 +255,17 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     // That's almost certainly the same assembly anyway, so just go with true
                     return true;
                 }
+                return false;
+            }
+
+            private bool IsFieldSerializableByAttributes(IFieldSymbol field)
+            {
+                if (field.GetAttributes()
+                        .Any(attr => SerializingFieldAttributes.Contains(NameHelper.GetFullName(attr.AttributeClass))))
+                {
+                    return true;
+                }
+
                 return false;
             }
         }
