@@ -91,7 +91,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         /// </summary>
         private sealed class WritableFieldScanner : CSharpSyntaxWalker
         {
-            private static readonly HashSet<string> SerializingFieldAttributes = new HashSet<string>
+            private static readonly HashSet<string> s_serializingFieldAttributes = new HashSet<string>
             {
                 "System.ComponentModel.Composition.ImportAttribute",
                 "System.ComponentModel.Composition.ImportManyAttribute",
@@ -203,7 +203,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             private bool IsFieldSerializableByAttributes(IFieldSymbol field)
             {
                 if (field.GetAttributes()
-                    .Any(attr => SerializingFieldAttributes.Contains(NameHelper.GetFullName(attr.AttributeClass))))
+                    .Any(attr => s_serializingFieldAttributes.Contains(NameHelper.GetFullName(attr.AttributeClass))))
                 {
                     return true;
                 }
