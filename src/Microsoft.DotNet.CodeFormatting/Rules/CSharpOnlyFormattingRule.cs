@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.DotNet.CodeFormatting.Rules
 {
-    internal abstract class CSharpOnlyFormattingRule : IFormattingRule
+    internal class CSharpOnlyFormattingRule : IFormattingRule
     {
         protected CSharpOnlyFormattingRule()
         {
