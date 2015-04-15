@@ -5,7 +5,7 @@ using System.ComponentModel;
 
 namespace Microsoft.DotNet.CodeFormatting
 {
-    public interface IOrderMetadata
+    public interface IRuleMetadata
     {
         [DefaultValue(int.MaxValue)]
         int Order { get; }
