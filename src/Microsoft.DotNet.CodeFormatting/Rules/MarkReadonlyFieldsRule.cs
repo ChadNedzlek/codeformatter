@@ -16,7 +16,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
     /// <summary>
     /// Mark any fields that can provably be marked as readonly.
     /// </summary>
-    [GlobalSemanticRule(GlobalSemanticRuleOrder.MarkReadonlyFieldsRule)]
+    [GlobalSemanticRule(GlobalSemanticRuleOrder.MarkReadonlyFieldsRule,
+        FormattingLevel = FormattingLevel.Agressive)]
     internal sealed class MarkReadonlyFieldsRule : IGlobalSemanticFormattingRule
     {
         private readonly SemaphoreSlim _processUsagesLock = new SemaphoreSlim(1, 1);
