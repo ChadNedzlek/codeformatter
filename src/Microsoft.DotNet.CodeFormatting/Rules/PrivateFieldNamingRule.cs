@@ -155,6 +155,11 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         private readonly CSharpRule _csharpRule = new CSharpRule();
         private readonly VisualBasicRule _visualBasicRule = new VisualBasicRule();
 
+        public FormattingLevel FormattingLevel
+        {
+            get { return FormattingLevel.Simple; }
+        }
+
         public bool SupportsLanguage(string languageName)
         {
             return

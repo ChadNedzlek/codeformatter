@@ -78,6 +78,12 @@ namespace Microsoft.DotNet.CodeFormatting
             set { _options.ConvertUnicodeCharacters = value; }
         }
 
+        public FormattingLevel FormattingLevel
+        {
+            get { return _options.FormattingLevel; }
+            set { _options.FormattingLevel = value; }
+        }
+
         [ImportingConstructor]
         internal FormattingEngineImplementation(
             Options options,
@@ -88,9 +94,19 @@ namespace Microsoft.DotNet.CodeFormatting
         {
             _options = options;
             _filters = filters;
-            _syntaxRules = syntaxRules.OrderBy(r => r.Metadata.Order).Select(r => r.Value).ToList();
-            _localSemanticRules = localSemanticRules.OrderBy(r => r.Metadata.Order).Select(r => r.Value).ToList();
-            _globalSemanticRules = globalSemanticRules.OrderBy(r => r.Metadata.Order).Select(r => r.Value).ToList();
+            _syntaxRules = GetOrderedRules(syntaxRules);
+            _localSemanticRules = GetOrderedRules(localSemanticRules);
+            _globalSemanticRules = GetOrderedRules(globalSemanticRules);
+        }
+
+        private IEnumerable<TRule> GetOrderedRules<TRule>(
+            IEnumerable<Lazy<TRule, IOrderMetadata>> localSemanticRules) where TRule : IFormattingRule
+        {
+            return localSemanticRules
+                .OrderBy(r => r.Metadata.Order)
+                .Select(r => r.Value)
+                .Where(r => r.FormattingLevel <= FormattingLevel)
+                .ToList();
         }
 
         public Task FormatSolutionAsync(Solution solution, CancellationToken cancellationToken)

@@ -28,6 +28,11 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             _options = options;
         }
 
+        public FormattingLevel FormattingLevel
+        {
+            get { return FormattingLevel.Simple; }
+        }
+
         public bool SupportsLanguage(string languageName)
         {
             return

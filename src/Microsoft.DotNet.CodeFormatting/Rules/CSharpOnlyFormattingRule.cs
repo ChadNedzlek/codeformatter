@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.DotNet.CodeFormatting.Rules
 {
-    internal class CSharpOnlyFormattingRule : IFormattingRule
+    internal abstract class CSharpOnlyFormattingRule : IFormattingRule
     {
         protected CSharpOnlyFormattingRule()
         {
@@ -20,5 +20,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         {
             return languageName == LanguageNames.CSharp;
         }
+
+        public abstract FormattingLevel FormattingLevel { get; }
     }
 }

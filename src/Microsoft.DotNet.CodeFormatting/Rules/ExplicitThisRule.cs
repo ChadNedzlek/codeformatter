@@ -68,6 +68,11 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             }
         }
 
+        public override FormattingLevel FormattingLevel
+        {
+            get { return FormattingLevel.Simple; }
+        }
+
         public async Task<SyntaxNode> ProcessAsync(Document document, SyntaxNode syntaxNode, CancellationToken cancellationToken)
         {
             var rewriter = new ExplicitThisRewriter(document, cancellationToken);

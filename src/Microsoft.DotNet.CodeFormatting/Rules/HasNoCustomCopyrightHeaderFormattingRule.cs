@@ -30,6 +30,11 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             _options = options;
         }
 
+        public override FormattingLevel FormattingLevel
+        {
+            get { return FormattingLevel.Simple; }
+        }
+
         public SyntaxNode Process(SyntaxNode syntaxNode, string languageName)
         {
             // SetHeaders
