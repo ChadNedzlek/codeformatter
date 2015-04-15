@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.DotNet.CodeFormatting.Rules
 {
-    [LocalSemanticRuleOrder(LocalSemanticRuleOrder.AssertArgumentOrderRule)]
+    [LocalSemanticRule(LocalSemanticRuleOrder.AssertArgumentOrderRule)]
     internal class AssertArgumentOrderRule : ILocalSemanticFormattingRule
     {
         private class Rewriter : CSharpSyntaxRewriter
@@ -47,7 +47,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
             {
                 var symbol = _model.GetSymbolInfo(node.Expression).Symbol as IMethodSymbol;
-                if (symbol == null || !TargetMethods.Contains(GetFullName(symbol)))
+                if (symbol == null || !TargetMethods.Contains(NameHelper.GetFullName(symbol)))
                 {
                     return base.VisitInvocationExpression(node);
                 }
@@ -121,32 +121,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 }
 
                 return -1;
-            }
-
-            private static string GetFullName(IMethodSymbol symbol)
-            {
-                return GetFullName(symbol.ContainingType) + "." + symbol.Name;
-            }
-
-            private static string GetFullName(INamedTypeSymbol type)
-            {
-                if (type.ContainingType != null)
-                {
-                    return GetFullName(type.ContainingType) + "." + type.Name;
-                }
-
-                return GetFullName(type.ContainingNamespace) + "." + type.Name;
-            }
-
-            private static string GetFullName(INamespaceSymbol namespaceSymbol)
-            {
-                if (namespaceSymbol.ContainingNamespace != null &&
-                    !namespaceSymbol.ContainingNamespace.IsGlobalNamespace)
-                {
-                    return GetFullName(namespaceSymbol.ContainingNamespace) + "." + namespaceSymbol.Name;
-                }
-
-                return namespaceSymbol.Name;
             }
         }
 
