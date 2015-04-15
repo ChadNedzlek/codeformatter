@@ -20,7 +20,5 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         {
             return languageName == LanguageNames.CSharp;
         }
-
-        public abstract FormattingLevel FormattingLevel { get; }
     }
 }

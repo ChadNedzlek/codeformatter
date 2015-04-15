@@ -171,11 +171,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             _options = options;
         }
 
-        public override FormattingLevel FormattingLevel
-        {
-            get { return FormattingLevel.Simple; }
-        }
-
         private ImmutableArray<string> GetHeader()
         {
             if (_cachedHeaderSource != _options.CopyrightHeader)

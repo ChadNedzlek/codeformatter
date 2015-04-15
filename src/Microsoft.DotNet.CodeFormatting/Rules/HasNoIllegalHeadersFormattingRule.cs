@@ -23,11 +23,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 
         // We are going to remove any multiline comments that *only* contain these characters
         private const string CommentFormattingCharacters = "*/=-";
-        
-        public override FormattingLevel FormattingLevel
-        {
-            get { return FormattingLevel.Simple; }
-        }
 
         public Task<SyntaxNode> ProcessAsync(Document document, SyntaxNode syntaxNode, CancellationToken cancellationToken)
         {

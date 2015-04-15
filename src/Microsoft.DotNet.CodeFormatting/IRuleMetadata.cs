@@ -9,5 +9,8 @@ namespace Microsoft.DotNet.CodeFormatting
     {
         [DefaultValue(int.MaxValue)]
         int Order { get; }
+
+        [DefaultValue(FormattingLevel.Simple)]
+        FormattingLevel FormattingLevel { get; }
     }
 }

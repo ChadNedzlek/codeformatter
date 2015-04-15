@@ -17,11 +17,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
     [LocalSemanticRule(LocalSemanticRuleOrder.ExplicitVisibilityRule)]
     internal sealed partial class ExplicitVisibilityRule : ILocalSemanticFormattingRule
     {
-        public FormattingLevel FormattingLevel
-        {
-            get { return FormattingLevel.Simple; }
-        }
-
         public bool SupportsLanguage(string languageName)
         {
             return

@@ -104,8 +104,8 @@ namespace Microsoft.DotNet.CodeFormatting
         {
             return rules
                 .OrderBy(r => r.Metadata.Order)
+                .Where(r => r.Metadata.FormattingLevel <= FormattingLevel)
                 .Select(r => r.Value)
-                .Where(r => r.FormattingLevel <= FormattingLevel)
                 .ToList();
         }
 

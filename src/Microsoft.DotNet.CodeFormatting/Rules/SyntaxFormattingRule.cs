@@ -12,8 +12,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
 {
     internal abstract class SyntaxFormattingRule : ISyntaxFormattingRule
     {
-        public abstract FormattingLevel FormattingLevel { get; }
-
         public abstract bool SupportsLanguage(string languageName);
 
         public SyntaxNode Process(SyntaxNode syntaxNode, string languageName)

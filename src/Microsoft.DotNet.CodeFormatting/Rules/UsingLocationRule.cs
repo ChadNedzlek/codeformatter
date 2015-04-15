@@ -19,11 +19,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
     [SyntaxRule(SyntaxRuleOrder.UsingLocationFormattingRule)]
     internal sealed class UsingLocationRule : CSharpOnlyFormattingRule, ISyntaxFormattingRule
     {
-        public override FormattingLevel FormattingLevel
-        {
-            get { return FormattingLevel.Simple; }
-        }
-
         public SyntaxNode Process(SyntaxNode syntaxNode, string languageName)
         {
             var root = syntaxNode as CompilationUnitSyntax;

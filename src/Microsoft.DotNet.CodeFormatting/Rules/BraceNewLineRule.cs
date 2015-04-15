@@ -24,11 +24,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             None,
         }
 
-        public override FormattingLevel FormattingLevel
-        {
-            get { return FormattingLevel.Simple; }
-        }
-        
         public SyntaxNode Process(SyntaxNode syntaxNode, string languageName)
         {
             syntaxNode = FixOpenBraces(syntaxNode);

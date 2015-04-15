@@ -21,7 +21,6 @@ namespace Microsoft.DotNet.CodeFormatting
     internal interface IFormattingRule
     {
         bool SupportsLanguage(string languageName);
-        FormattingLevel FormattingLevel { get; }
     }
 
     /// <summary>

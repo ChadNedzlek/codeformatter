@@ -21,11 +21,6 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
     [SyntaxRule(SyntaxRuleOrder.NewLineAboveFormattingRule)]
     internal sealed class NewLineAboveRule : CSharpOnlyFormattingRule, ISyntaxFormattingRule
     {
-        public override FormattingLevel FormattingLevel
-        {
-            get { return FormattingLevel.Simple; }
-        }
-
         public SyntaxNode Process(SyntaxNode syntaxRoot, string languageName)
         {
             syntaxRoot = ProcessUsing(syntaxRoot);
