@@ -31,19 +31,20 @@ namespace CodeFormatter
     [/copyright:<file> | /nocopyright] [/tables] [/nounicode] 
     [/simple|/agressive] [/verbose]
 
-/file        - Only apply changes to files with specified name.
-/lang        - Specifies the language to use when a responsefile is
-               specified. i.e. 'C#', 'Visual Basic', ... (default: 'C#')
-/c           - Additional preprocessor configurations the formatter
-               should run under.
-/copyright   - Specifies file containing copyright header.
-               Use ConvertTests to convert MSTest tests to xUnit.
-/nocopyright - Do not update the copyright message.
-/tables      - Let tables opt out of formatting by defining DOTNET_FORMATTER
-/nounicode   - Do not convert unicode strings to escape sequences
-/simple      - Only run simple formatters (default)
-/agressive   - Run agressive form
-/verbose     - Verbose output
+    /file        - Only apply changes to files with specified name.
+    /lang        - Specifies the language to use when a responsefile is
+                   specified. i.e. 'C#', 'Visual Basic', ... (default: 'C#')
+    /c           - Additional preprocessor configurations the formatter
+                   should run under.
+    /copyright   - Specifies file containing copyright header.
+                   Use ConvertTests to convert MSTest tests to xUnit.
+    /nocopyright - Do not update the copyright message.
+    /tables      - Let tables opt out of formatting by defining
+                   DOTNET_FORMATTER
+    /nounicode   - Do not convert unicode strings to escape sequences
+    /simple      - Only run simple formatters (default)
+    /agressive   - Run agressive form
+    /verbose     - Verbose output
 ");
                 return -1;
             }
