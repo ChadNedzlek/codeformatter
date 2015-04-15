@@ -99,10 +99,10 @@ namespace Microsoft.DotNet.CodeFormatting
             _globalSemanticRules = GetOrderedRules(globalSemanticRules);
         }
 
-        private IEnumerable<TRule> GetOrderedRules<TRule>(
-            IEnumerable<Lazy<TRule, IOrderMetadata>> localSemanticRules) where TRule : IFormattingRule
+        private IEnumerable<TRule> GetOrderedRules<TRule>(IEnumerable<Lazy<TRule, IOrderMetadata>> rules)
+            where TRule : IFormattingRule
         {
-            return localSemanticRules
+            return rules
                 .OrderBy(r => r.Metadata.Order)
                 .Select(r => r.Value)
                 .Where(r => r.FormattingLevel <= FormattingLevel)
