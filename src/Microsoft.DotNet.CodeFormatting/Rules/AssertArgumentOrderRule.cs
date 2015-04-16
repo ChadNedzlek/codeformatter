@@ -52,8 +52,8 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     return base.VisitInvocationExpression(node);
                 }
 
-                int actualIndex = ParameterWithNameIndex(symbol, s_actualParamterNames);
-                int expectedIndex = ParameterWithNameIndex(symbol, s_expectedParamterNames);
+                int actualIndex = IndexOfParameterWithName(symbol, s_actualParamterNames);
+                int expectedIndex = IndexOfParameterWithName(symbol, s_expectedParamterNames);
 
                 if (actualIndex == -1 || expectedIndex == -1)
                 {
@@ -113,7 +113,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 return false;
             }
 
-            private int ParameterWithNameIndex(IMethodSymbol symbol, HashSet<string> names)
+            private int IndexOfParameterWithName(IMethodSymbol symbol, HashSet<string> names)
             {
                 for (int i = 0; i < symbol.Parameters.Length; i++)
                 {
