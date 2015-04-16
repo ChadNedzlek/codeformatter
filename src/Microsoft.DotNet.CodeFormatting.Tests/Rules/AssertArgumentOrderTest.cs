@@ -23,13 +23,13 @@ namespace Microsoft.DotNet.CodeFormatting.Tests
                 yield return reference;
             }
 
-            yield return MetadataReference.CreateFromAssembly(typeof (Assert).Assembly);
+            yield return MetadataReference.CreateFromAssembly(typeof(Assert).Assembly);
         }
 
         [Fact]
         public void TestSwapInvertedEqual()
         {
-            var source = @"
+            string source = @"
 public class Tests
 {
     public void TestA()
@@ -39,7 +39,7 @@ public class Tests
     }
 }
 ";
-            var expected = @"
+            string expected = @"
 public class Tests
 {
     public void TestA()
@@ -56,7 +56,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedEqualEnum()
         {
-            var source = @"
+            string source = @"
 public class Tests
 {
     private enum E
@@ -72,7 +72,7 @@ public class Tests
     }
 }
 ";
-            var expected = @"
+            string expected = @"
 public class Tests
 {
     private enum E
@@ -94,7 +94,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedEqualConstField()
         {
-            var source = @"
+            string source = @"
 public class Tests
 {
     private const int A;
@@ -106,7 +106,7 @@ public class Tests
     }
 }
 ";
-            var expected = @"
+            string expected = @"
 public class Tests
 {
     private const int A;
@@ -124,7 +124,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedNotEqual()
         {
-            var source = @"
+            string source = @"
 public class Tests
 {
     public void TestA()
@@ -134,7 +134,7 @@ public class Tests
     }
 }
 ";
-            var expected = @"
+            string expected = @"
 public class Tests
 {
     public void TestA()
@@ -150,7 +150,7 @@ public class Tests
         [Fact]
         public void TestSwapInvertedEqualFromUsing()
         {
-            var source = @"
+            string source = @"
 using Xunit;
 
 public class Tests
@@ -162,7 +162,7 @@ public class Tests
     }
 }
 ";
-            var expected = @"
+            string expected = @"
 using Xunit;
 
 public class Tests
@@ -180,7 +180,7 @@ public class Tests
         [Fact]
         public void TestIgnoredCorrectEqual()
         {
-            var text = @"
+            string text = @"
 public class Tests
 {
     public void TestA()
@@ -196,7 +196,7 @@ public class Tests
         [Fact]
         public void TestIgnoredDoubleConstEqual()
         {
-            var text = @"
+            string text = @"
 public class Tests
 {
     public void TestA()
@@ -211,7 +211,7 @@ public class Tests
         [Fact]
         public void TestIgnoredDoubleVariableEqual()
         {
-            var text = @"
+            string text = @"
 public class Tests
 {
     public void TestA()
@@ -228,7 +228,7 @@ public class Tests
         [Fact]
         public void TestIgnoredCorrectNotEqual()
         {
-            var text = @"
+            string text = @"
 public class Tests
 {
     public void TestA()
@@ -244,7 +244,7 @@ public class Tests
         [Fact]
         public void TestIgnoreOtherAssert()
         {
-            var text = @"
+            string text = @"
 public class Assert
 {
     public void Equal(int expected, int actual)

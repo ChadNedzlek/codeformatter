@@ -60,7 +60,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     return base.VisitInvocationExpression(node);
                 }
 
-                var argumentList = (ArgumentListSyntax) Visit(node.ArgumentList);
+                var argumentList = (ArgumentListSyntax)Visit(node.ArgumentList);
 
                 if (!IsConstant(argumentList.Arguments[actualIndex].Expression) ||
                     IsConstant(argumentList.Arguments[expectedIndex].Expression))
@@ -78,7 +78,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 arguments[expectedIndex] = actualArgument;
 
                 return node.Update(
-                    (ExpressionSyntax) Visit(node.Expression),
+                    (ExpressionSyntax)Visit(node.Expression),
                     argumentList.WithArguments(SyntaxFactory.SeparatedList(arguments)));
             }
 
@@ -92,22 +92,22 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                     case SyntaxKind.NumericLiteralExpression:
                     case SyntaxKind.StringLiteralExpression:
                     case SyntaxKind.TrueLiteralExpression:
-                    {
-                        return true;
-                    }
+                        {
+                            return true;
+                        }
 
                     case SyntaxKind.SimpleMemberAccessExpression:
                     case SyntaxKind.IdentifierName:
-                    {
-                        ISymbol symbol = _model.GetSymbolInfo(expression).Symbol;
-
-                        if (symbol?.Kind == SymbolKind.Field)
                         {
-                            return ((IFieldSymbol) symbol).IsConst;
-                        }
+                            ISymbol symbol = _model.GetSymbolInfo(expression).Symbol;
 
-                        break;
-                    }
+                            if (symbol?.Kind == SymbolKind.Field)
+                            {
+                                return ((IFieldSymbol)symbol).IsConst;
+                            }
+
+                            break;
+                        }
                 }
 
                 return false;
@@ -132,7 +132,9 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             return languageName == LanguageNames.CSharp;
         }
 
-        public async Task<SyntaxNode> ProcessAsync(Document document, SyntaxNode syntaxRoot,
+        public async Task<SyntaxNode> ProcessAsync(
+            Document document,
+            SyntaxNode syntaxRoot,
             CancellationToken cancellationToken)
         {
             var rewriter = new Rewriter(await document.GetSemanticModelAsync(cancellationToken));
