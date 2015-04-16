@@ -20,20 +20,20 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
         {
             private readonly SemanticModel _model;
 
-            private static readonly HashSet<string> TargetMethods =
+            private static readonly HashSet<string> s_targetMethods =
                 new HashSet<string>(StringComparer.Ordinal)
                 {
                     "Xunit.Assert.Equal",
                     "Xunit.Assert.NotEqual",
                 };
 
-            private static readonly HashSet<string> ActualParamterNames =
+            private static readonly HashSet<string> s_actualParamterNames =
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "actual",
                 };
 
-            private static readonly HashSet<string> ExpectedParamterNames =
+            private static readonly HashSet<string> s_expectedParamterNames =
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "expected",
@@ -47,13 +47,13 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
             {
                 var symbol = _model.GetSymbolInfo(node.Expression).Symbol as IMethodSymbol;
-                if (symbol == null || !TargetMethods.Contains(NameHelper.GetFullName(symbol)))
+                if (symbol == null || !s_targetMethods.Contains(NameHelper.GetFullName(symbol)))
                 {
                     return base.VisitInvocationExpression(node);
                 }
 
-                int actualIndex = ParameterWithNameIndex(symbol, ActualParamterNames);
-                int expectedIndex = ParameterWithNameIndex(symbol, ExpectedParamterNames);
+                int actualIndex = ParameterWithNameIndex(symbol, s_actualParamterNames);
+                int expectedIndex = ParameterWithNameIndex(symbol, s_expectedParamterNames);
 
                 if (actualIndex == -1 || expectedIndex == -1)
                 {
@@ -65,7 +65,10 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
                 if (!IsConstant(argumentList.Arguments[actualIndex].Expression) ||
                     IsConstant(argumentList.Arguments[expectedIndex].Expression))
                 {
-                    return base.VisitInvocationExpression(node);
+                    // Since the arguments are already walked, use them and visit the expression
+                    return node.Update(
+                        (ExpressionSyntax)Visit(node.Expression),
+                        argumentList);
                 }
 
                 List<ArgumentSyntax> arguments = argumentList.Arguments.ToList();
