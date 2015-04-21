@@ -2,32 +2,23 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Microsoft.CodeAnalysis;
 
 using Xunit;
 
-namespace Microsoft.DotNet.CodeFormatting.Tests
+namespace XUnitConverter.Tests
 {
-    public class AssertArgumentOrderTest : LocalSemanticRuleTestBase
+    public class AssertArgumentOrderTest : ConverterTestBase
     {
-        internal override ILocalSemanticFormattingRule Rule
+        protected override XUnitConverter.ConverterBase CreateConverter()
         {
-            get { return new Rules.AssertArgumentOrderRule(); }
-        }
-
-        protected override IEnumerable<MetadataReference> GetSolutionMetadataReferences()
-        {
-            foreach (MetadataReference reference in base.GetSolutionMetadataReferences())
-            {
-                yield return reference;
-            }
-
-            yield return MetadataReference.CreateFromAssembly(typeof(Assert).Assembly);
+            return new XUnitConverter.AssertArgumentOrderConverter();
         }
 
         [Fact]
-        public void TestSwapInvertedEqual()
+        public async Task TestSwapInvertedEqual()
         {
             string source = @"
 public class Tests
@@ -50,11 +41,11 @@ public class Tests
 }
 ";
 
-            Verify(source, expected);
+            await Verify(source, expected);
         }
 
         [Fact]
-        public void TestSwapInvertedEqualEnum()
+        public async Task TestSwapInvertedEqualEnum()
         {
             string source = @"
 public class Tests
@@ -88,11 +79,11 @@ public class Tests
     }
 }
 ";
-            Verify(source, expected);
+            await Verify(source, expected);
         }
 
         [Fact]
-        public void TestSwapInvertedEqualConstField()
+        public async Task TestSwapInvertedEqualConstField()
         {
             string source = @"
 public class Tests
@@ -118,11 +109,11 @@ public class Tests
     }
 }
 ";
-            Verify(source, expected);
+            await Verify(source, expected);
         }
 
         [Fact]
-        public void TestSwapInvertedNotEqual()
+        public async Task TestSwapInvertedNotEqual()
         {
             string source = @"
 public class Tests
@@ -144,11 +135,11 @@ public class Tests
     }
 }
 ";
-            Verify(source, expected);
+            await Verify(source, expected);
         }
 
         [Fact]
-        public void TestSwapInvertedEqualFromUsing()
+        public async Task TestSwapInvertedEqualFromUsing()
         {
             string source = @"
 using Xunit;
@@ -174,11 +165,11 @@ public class Tests
     }
 }
 ";
-            Verify(source, expected);
+            await Verify(source, expected);
         }
 
         [Fact]
-        public void TestIgnoredCorrectEqual()
+        public async Task TestIgnoredCorrectEqual()
         {
             string text = @"
 public class Tests
@@ -190,11 +181,11 @@ public class Tests
     }
 }
 ";
-            Verify(text, text);
+            await Verify(text, text);
         }
 
         [Fact]
-        public void TestIgnoredDoubleConstEqual()
+        public async Task TestIgnoredDoubleConstEqual()
         {
             string text = @"
 public class Tests
@@ -205,11 +196,11 @@ public class Tests
     }
 }
 ";
-            Verify(text, text);
+            await Verify(text, text);
         }
 
         [Fact]
-        public void TestIgnoredDoubleVariableEqual()
+        public async Task TestIgnoredDoubleVariableEqual()
         {
             string text = @"
 public class Tests
@@ -222,11 +213,11 @@ public class Tests
     }
 }
 ";
-            Verify(text, text);
+            await Verify(text, text);
         }
 
         [Fact]
-        public void TestIgnoredCorrectNotEqual()
+        public async Task TestIgnoredCorrectNotEqual()
         {
             string text = @"
 public class Tests
@@ -238,11 +229,11 @@ public class Tests
     }
 }
 ";
-            Verify(text, text);
+            await Verify(text, text);
         }
 
         [Fact]
-        public void TestIgnoreOtherAssert()
+        public async Task TestIgnoreOtherAssert()
         {
             string text = @"
 public class Assert
@@ -261,7 +252,7 @@ public class Tests
     }
 }
 ";
-            Verify(text, text);
+            await Verify(text, text);
         }
     }
 }

@@ -105,7 +105,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeFormattingTestBase.cs" />
-    <Compile Include="Rules\AssertArgumentOrderTest.cs" />
     <Compile Include="Rules\BracesRuleTests.cs" />
     <Compile Include="Rules\CombinationTest.cs" />
     <Compile Include="Rules\CopyrightHeaderRuleTests.cs" />

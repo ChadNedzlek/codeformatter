@@ -11,10 +11,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Microsoft.DotNet.CodeFormatting.Rules
+namespace XUnitConverter
 {
-    [LocalSemanticRule(LocalSemanticRuleOrder.AssertArgumentOrderRule)]
-    internal class AssertArgumentOrderRule : ILocalSemanticFormattingRule
+    public sealed class AssertArgumentOrderConverter : ConverterBase
     {
         private class Rewriter : CSharpSyntaxRewriter
         {
@@ -127,18 +126,15 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
             }
         }
 
-        public bool SupportsLanguage(string languageName)
-        {
-            return languageName == LanguageNames.CSharp;
-        }
-
-        public async Task<SyntaxNode> ProcessAsync(
+        protected override async Task<Solution> ProcessAsync(
             Document document,
             SyntaxNode syntaxRoot,
             CancellationToken cancellationToken)
         {
             var rewriter = new Rewriter(await document.GetSemanticModelAsync(cancellationToken));
-            return rewriter.Visit(await document.GetSyntaxRootAsync(cancellationToken));
+            var newNode = rewriter.Visit(syntaxRoot);
+
+            return document.Project.Solution.WithDocumentSyntaxRoot(document.Id, newNode);
         }
     }
 }
