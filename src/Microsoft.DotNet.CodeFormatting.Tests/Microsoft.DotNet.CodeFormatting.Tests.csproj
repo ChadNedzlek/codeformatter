@@ -155,6 +155,7 @@
     <Compile Include="Rules\NonAsciiCharactersAreEscapedInLiteralsRuleTests.cs" />
     <Compile Include="Rules\MarkReadonlyFieldTests.cs" />
     <Compile Include="Rules\UsingLocationRuleTests.cs" />
+    <Compile Include="Rules\UsingOrderRuleTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
