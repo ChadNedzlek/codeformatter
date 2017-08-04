@@ -15,6 +15,7 @@ namespace Microsoft.DotNet.CodeFormatting.Rules
     {
         public const int HasNoCustomCopyrightHeaderFormattingRule = 1;
         public const int UsingLocationFormattingRule = 2;
+        public const int UsingOrderFormattingRule = 2;
         public const int NewLineAboveFormattingRule = 3;
         public const int BraceNewLineRule = 4;
         public const int NonAsciiChractersAreEscapedInLiterals = 5;
